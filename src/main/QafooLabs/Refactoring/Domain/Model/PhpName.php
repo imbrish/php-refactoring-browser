@@ -50,6 +50,33 @@ class PhpName implements Hashable
     /**
      * Would this name be affected by a change to the given name?
      *
+     * @param string $base
+     * @return bool
+     */
+    public function fixNames($base)
+    {
+        $base = preg_replace('/(?:\/)*$/u', '/', str_replace('\\', '/', $base));
+        $pattern = '/^' . preg_quote($base, '/') . '/';
+
+        foreach (['fullyQualifiedName', 'relativeName'] as $name) {
+            $value = $this->$name;
+
+            $value = str_replace('\\', '/', $value);
+            $value = preg_replace($pattern, '', $value);
+
+            $value = implode('\\', array_map(function ($part) {
+                return ucfirst($part);
+            }, explode('/', $value)));
+
+            $this->$name = $value;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Would this name be affected by a change to the given name?
+     *
      * @param PhpName $other
      * @return bool
      */

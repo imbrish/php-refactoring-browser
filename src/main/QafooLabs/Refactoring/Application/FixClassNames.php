@@ -33,7 +33,7 @@ class FixClassNames
         $this->nameScanner = $nameScanner;
     }
 
-    public function refactor(Directory $directory)
+    public function refactor(Directory $directory, $base)
     {
         $phpFiles = $directory->findAllPhpFilesRecursivly();
 
@@ -54,8 +54,8 @@ class FixClassNames
             }
 
             $class = $classes[0];
-            $currentClassName = $class->declarationName();
-            $expectedClassName = $phpFile->extractPsr0ClassName();
+            $currentClassName = $class->declarationName()->fixNames($base);
+            $expectedClassName = $phpFile->extractPsr0ClassName()->fixNames($base);
 
             $buffer = $this->editor->openBuffer($phpFile); // This is weird to be required here
 

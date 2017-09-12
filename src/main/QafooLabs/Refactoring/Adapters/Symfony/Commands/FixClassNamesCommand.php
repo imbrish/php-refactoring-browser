@@ -34,6 +34,7 @@ class FixClassNamesCommand extends Command
             ->setName('fix-class-names')
             ->setDescription('Find all classes whose names don\'t match their required PSR-0 name and rename them.')
             ->addArgument('dir', InputArgument::IS_ARRAY | InputArgument::REQUIRED, 'Directory that contains the source code to refactor')
+            ->addOption('base', 'b', InputOption::VALUE_OPTIONAL, 'Project base directory', '')
             ->setHelp(<<<HELP
 Fix class and namespace names to correspond to the current filesystem layout,
 given that the project uses PSR-0. This means you can use this tool to
@@ -61,13 +62,14 @@ HELP
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $directory = new Directory($input->getArgument('dir'), getcwd());
+        $base = $input->getOption('base');
 
         $codeAnalysis = new StaticCodeAnalysis();
         $phpNameScanner = new ParserPhpNameScanner();
         $editor = new PatchEditor(new OutputPatchCommand($output));
 
         $fixClassNames = new FixClassNames($codeAnalysis, $editor, $phpNameScanner);
-        $fixClassNames->refactor($directory);
+        $fixClassNames->refactor($directory, $base);
     }
 }
 
