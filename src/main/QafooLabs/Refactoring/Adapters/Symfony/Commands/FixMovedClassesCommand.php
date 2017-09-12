@@ -37,7 +37,7 @@ class FixMovedClassesCommand extends Command
             ->setDescription('Update codebase after changing project structure.')
             ->addArgument('dir', InputArgument::IS_ARRAY | InputArgument::REQUIRED, 'Directory that contains the source code to refactor')
             ->addOption('base', 'b', InputOption::VALUE_OPTIONAL, 'Project base directory', '')
-            ->addOption('ignore', 'i', InputOption::VALUE_OPTIONAL, 'Relative directories to ignore', '')
+            ->addOption('skip', 's', InputOption::VALUE_OPTIONAL, 'Directories relative to base directory that should be skipped', '')
         ;
     }
 
@@ -45,13 +45,13 @@ class FixMovedClassesCommand extends Command
     {
         $directory = new Directory($input->getArgument('dir'), getcwd());
         $base = NameFixer::folderPath($input->getOption('base'));
-        $ignore = array_filter(explode(',', $input->getOption('ignore')));
+        $skip = array_filter(explode(',', $input->getOption('skip')));
 
         $codeAnalysis = new StaticCodeAnalysis();
         $phpNameScanner = new ParserPhpNameScanner();
         $editor = new PatchEditor(new OutputPatchCommand($output));
 
         $fixMovedClasses = new FixMovedClasses($codeAnalysis, $editor, $phpNameScanner);
-        $fixMovedClasses->refactor($directory, $base, $ignore);
+        $fixMovedClasses->refactor($directory, $base, $skip);
     }
 }

@@ -35,13 +35,13 @@ class FixMovedClasses
         $this->nameScanner = $nameScanner;
     }
 
-    public function refactor(Directory $directory, $base, $ignore)
+    public function refactor(Directory $directory, $base, $skip)
     {
         // Get paths to ignore from .gitignore file.
-        $ignorePaths = $this->getPathsToIgnore($base, $ignore);
+        $exclude = $this->pathsToExclude($base, $skip);
 
         // Find all files.
-        $phpFiles = $directory->findAllPhpFilesRecursivly($ignorePaths);
+        $phpFiles = $directory->findAllPhpFilesRecursivly($exclude);
 
         // Fix namespaces of all moved classes and get list of changes.
         $renames = $this->fixClassesNames($phpFiles, $base);
@@ -58,7 +58,7 @@ class FixMovedClasses
         $this->editor->save();
     }
 
-    public function getPathsToIgnore($base, $append = [])
+    public function pathsToExclude($base, $append = [])
     {
         if (! file_exists($base . '.gitignore')) {
             return $append;

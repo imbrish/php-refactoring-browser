@@ -52,7 +52,7 @@ class Directory
     /**
      * @return File[]
      */
-    public function findAllPhpFilesRecursivly($ignorePaths = [])
+    public function findAllPhpFilesRecursivly($exclude = [])
     {
         $workingDirectory = $this->workingDirectory;
 
@@ -65,7 +65,7 @@ class Directory
                         new RecursiveIteratorIterator(
                             new DirectoryFilterIterator(
                                 new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
-                                $ignorePaths
+                                $exclude
                             ),
                             RecursiveIteratorIterator::LEAVES_ONLY
                         ),
