@@ -124,12 +124,26 @@ class FixMovedClasses
         $classes = $this->codeAnalysis->findClasses($phpFile);
         $class = array_shift($classes);
 
-        // Find file namespace.
+        // Find file namespace. Check if it hasn't been updated too.
         $namespace = array_filter($occurances, function ($occurance) {
             return $occurance->name()->type() === PhpName::TYPE_NAMESPACE;
         });
 
-        $namespace = $namespace ? reset($namespace)->name()->fullyQualifiedName() : null;
+        if (count($namespace) == 0) {
+            $namespace = null;
+        }
+        else {
+            $namespace = reset($namespace)->name();
+
+            foreach ($renames as $rename) {
+                if ($rename->affectsNamespace($namespace)) {
+                    $namespace = $rename->change($namespace);
+                    break;
+                }
+            }
+
+            $namespace = $namespace->fullyQualifiedName();
+        }
 
         // This variables are used purely for formating of use statements.
         $hadUses = false;

@@ -31,6 +31,11 @@ class PhpNameChange implements Hashable
         return $name->isAffectedByChangesTo($this->fromName);
     }
 
+    public function affectsNamespace(PhpName $namespace)
+    {
+        return $namespace->fullyQualifiedName() === $this->fromName->fullyQualifiedNamespace();
+    }
+
     public function change(PhpName $name)
     {
         return $name->change($this->fromName, $this->toName);
