@@ -14,7 +14,6 @@
 namespace QafooLabs\Refactoring\Domain\Model;
 
 use QafooLabs\Collections\Hashable;
-use QafooLabs\Refactoring\Utils\NameFixer;
 
 /**
  * Representation of a Name in PHP

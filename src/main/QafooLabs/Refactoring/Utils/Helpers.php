@@ -14,24 +14,12 @@
 
 namespace QafooLabs\Refactoring\Utils;
 
-class NameFixer
+class Helpers
 {
     public static function folderPath($path)
     {
         // Convert slashes and add trailing slash.
         return rtrim(str_replace('\\', '/', $path), '/') . '/';
-    }
-
-    public static function className($name, $base)
-    {
-        // Remove base path and fix case.
-        $pattern = '/^' . preg_quote($base, '/') . '/';
-
-        $name = preg_replace($pattern, '', str_replace('\\', '/', $name));
-
-        return implode('\\', array_map(function ($part) {
-            return ucfirst($part);
-        }, explode('/', $name)));
     }
 
     public static function removeBasePath($path, $base)

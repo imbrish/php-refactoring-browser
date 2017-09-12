@@ -26,7 +26,7 @@ use QafooLabs\Refactoring\Adapters\PatchBuilder\PatchEditor;
 use QafooLabs\Refactoring\Adapters\Symfony\OutputPatchCommand;
 use QafooLabs\Refactoring\Domain\Model\Directory;
 
-use QafooLabs\Refactoring\Utils\NameFixer;
+use QafooLabs\Refactoring\Utils\Helpers;
 
 class FixClassNamesCommand extends Command
 {
@@ -63,7 +63,7 @@ HELP
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $base = NameFixer::folderPath($input->getOption('base') ?: getcwd());
+        $base = Helpers::folderPath($input->getOption('base') ?: getcwd());
 
         $directory = new Directory($input->getArgument('dir'), $base);
 

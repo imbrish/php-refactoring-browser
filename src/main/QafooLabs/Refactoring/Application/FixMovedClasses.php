@@ -20,7 +20,7 @@ use QafooLabs\Refactoring\Domain\Model\PhpName;
 use QafooLabs\Refactoring\Domain\Model\PhpNameChange;
 
 use CallbackFilterIterator;
-use QafooLabs\Refactoring\Utils\NameFixer;
+use QafooLabs\Refactoring\Utils\Helpers;
 
 class FixMovedClasses
 {
@@ -73,7 +73,7 @@ class FixMovedClasses
         return array_map(function ($path) use ($base) {
             $path = preg_replace('/^\//', '', trim($path));
 
-            return $base . NameFixer::folderPath($path);
+            return $base . Helpers::folderPath($path);
         }, array_merge(preg_split('/\n/', $content), $append));
     }
 

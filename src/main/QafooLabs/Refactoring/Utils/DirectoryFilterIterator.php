@@ -14,7 +14,7 @@
 namespace QafooLabs\Refactoring\Utils;
 
 use RecursiveFilterIterator;
-use QafooLabs\Refactoring\Utils\NameFixer;
+use QafooLabs\Refactoring\Utils\Helpers;
 
 class DirectoryFilterIterator extends RecursiveFilterIterator
 {
@@ -28,7 +28,7 @@ class DirectoryFilterIterator extends RecursiveFilterIterator
 
     public function accept()
     {
-        return ! NameFixer::shouldIgnore($this->getPathname(), $this->exclude);
+        return ! Helpers::shouldIgnore($this->getPathname(), $this->exclude);
     }
 
     public function getChildren()

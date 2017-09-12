@@ -26,7 +26,7 @@ use QafooLabs\Refactoring\Adapters\PatchBuilder\PatchEditor;
 use QafooLabs\Refactoring\Adapters\Symfony\OutputPatchCommand;
 use QafooLabs\Refactoring\Domain\Model\Directory;
 
-use QafooLabs\Refactoring\Utils\NameFixer;
+use QafooLabs\Refactoring\Utils\Helpers;
 
 class FixMovedClassesCommand extends Command
 {
@@ -43,7 +43,7 @@ class FixMovedClassesCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $base = NameFixer::folderPath($input->getOption('base') ?: getcwd());
+        $base = Helpers::folderPath($input->getOption('base') ?: getcwd());
         $skip = array_filter(explode(',', $input->getOption('skip')));
 
         $directory = new Directory($input->getArgument('dir'), $base);

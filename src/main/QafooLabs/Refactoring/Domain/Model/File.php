@@ -13,7 +13,7 @@
 
 namespace QafooLabs\Refactoring\Domain\Model;
 
-use QafooLabs\Refactoring\Utils\NameFixer;
+use QafooLabs\Refactoring\Utils\Helpers;
 
 /**
  * Represent a file in the project being refactored.
@@ -37,7 +37,7 @@ class File
 
         $code = file_get_contents($path);
 
-        $relativePath = NameFixer::removeBasePath($path, $workingDirectory);
+        $relativePath = Helpers::removeBasePath($path, $workingDirectory);
 
         return new self(ltrim($relativePath, '/'), $code);
     }
