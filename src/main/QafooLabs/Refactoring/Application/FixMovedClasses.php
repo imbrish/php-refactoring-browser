@@ -40,7 +40,6 @@ class FixMovedClasses
         $phpFiles = $directory->findAllPhpFilesRecursivly();
 
         // Fix namespaces of all moved classes and get list of changes.
-        // This will FAIL if file has no namespace defined in the first place.
         $renames = $this->fixClassesNames($phpFiles, $base);
 
         // Update old use statements in other files.
@@ -61,12 +60,15 @@ class FixMovedClasses
 
         foreach ($phpFiles as $phpFile) {
             $classes = $this->codeAnalysis->findClasses($phpFile);
+            $class = array_shift($classes);
 
-            if (count($classes) !== 1) {
+            if (! $class) {
                 continue;
             }
 
-            $class = $classes[0];
+            $hasNamespace = $class->declarationName()->fullyQualifiedNamespace() !== '';
+            $line = $class->namespaceDeclarationLine();
+
             $currentClassName = $class->declarationName()->fixNames($base);
             $expectedClassName = $phpFile->extractPsr0ClassName()->fixNames($base);
 
@@ -79,11 +81,12 @@ class FixMovedClasses
             if (!$expectedClassName->namespaceName()->equals($currentClassName->namespaceName())) {
                 $renames->add(new PhpNameChange($currentClassName->fullyQualified(), $expectedClassName->fullyQualified()));
 
-                $buffer->replaceString(
-                    $class->namespaceDeclarationLine(),
-                    $currentClassName->namespaceName()->fullyQualifiedName(),
-                    $expectedClassName->namespaceName()->fullyQualifiedName()
-                );
+                if ($hasNamespace) {
+                    $buffer->replaceString($line, $currentClassName->fullyQualifiedNamespace(), $expectedClassName->fullyQualifiedNamespace());
+                }
+                else {
+                    $buffer->append(1, ['', sprintf('namespace %s;', $expectedClassName->fullyQualifiedNamespace())]);
+                }
             }
         }
 
