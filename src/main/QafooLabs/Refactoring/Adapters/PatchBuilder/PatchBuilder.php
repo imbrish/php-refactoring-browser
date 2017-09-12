@@ -148,11 +148,13 @@ class PatchBuilder
     {
         $builder = new PhpDiffBuilder();
 
-        return $builder->buildPatch(
+        $diff = $builder->buildPatch(
             'a/' . $this->path,
             'b/' . $this->path,
             $this->buffer
         );
+
+        return preg_replace('/\r\n?|\n/', PHP_EOL, $diff);
     }
 
     /**
