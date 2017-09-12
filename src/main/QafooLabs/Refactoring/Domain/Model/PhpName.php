@@ -172,6 +172,11 @@ class PhpName implements Hashable
         return new PhpName($name, $name, self::TYPE_NAMESPACE);
     }
 
+    public function fullyQualifiedNamespace()
+    {
+        return $this->namespaceName()->fullyQualifiedName();
+    }
+
     public function shortName()
     {
         $parts = self::stringToParts($this->fullyQualifiedName);
