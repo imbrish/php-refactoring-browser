@@ -19,6 +19,7 @@ use QafooLabs\Refactoring\Domain\Model\File;
 use QafooLabs\Refactoring\Domain\Model\PhpName;
 use QafooLabs\Refactoring\Domain\Model\PhpNameChange;
 use QafooLabs\Refactoring\Domain\Model\PhpNames\NoImportedUsagesFilter;
+use CallbackFilterIterator;
 
 class FixMovedClasses
 {
@@ -35,12 +36,78 @@ class FixMovedClasses
 
     public function refactor(Directory $directory, $base)
     {
-        $renames = $this->fixClassesNames($directory, $base);
+        // Find all files.
+        $phpFiles = $directory->findAllPhpFilesRecursivly();
+
+        // Fix namespaces of all moved classes and get list of changes.
+        // This will FAIL if file has no namespace defined in the first place.
+        $renames = $this->fixClassesNames($phpFiles, $base);
+
+        // Update old namespaces used by other files.
+
+        // Add missing namespaces for files that used to be at the same path.
+
+        // Remove unnecessary namespaces in files that ar not at the same path.
+
+        // Generate diff.
+        $this->editor->save();
     }
 
-    public function fixClassesNames(Directory $directory, $base)
+    public function fixClassesNames(CallbackFilterIterator $phpFiles, $base)
     {
-        $fixClassNames = new FixClassNames($this->codeAnalysis, $this->editor, $this->nameScanner);
-        return $fixClassNames->refactor($directory, $base);
+        $renames = new Set();
+        $occurances = array();
+        $noImportedUsages = new NoImportedUsagesFilter();
+
+        foreach ($phpFiles as $phpFile) {
+            $classes = $this->codeAnalysis->findClasses($phpFile);
+
+            $occurances = array_merge(
+                $noImportedUsages->filter($this->nameScanner->findNames($phpFile)),
+                $occurances
+            );
+
+            if (count($classes) !== 1) {
+                continue;
+            }
+
+            $class = $classes[0];
+            $currentClassName = $class->declarationName()->fixNames($base);
+            $expectedClassName = $phpFile->extractPsr0ClassName()->fixNames($base);
+
+            $buffer = $this->editor->openBuffer($phpFile); // This is weird to be required here
+
+            if ($expectedClassName->shortName() !== $currentClassName->shortName()) {
+                $renames->add(new PhpNameChange($currentClassName, $expectedClassName));
+            }
+
+            if (!$expectedClassName->namespaceName()->equals($currentClassName->namespaceName())) {
+                $renames->add(new PhpNameChange($currentClassName->fullyQualified(), $expectedClassName->fullyQualified()));
+
+                $buffer->replaceString(
+                    $class->namespaceDeclarationLine(),
+                    $currentClassName->namespaceName()->fullyQualifiedName(),
+                    $expectedClassName->namespaceName()->fullyQualifiedName()
+                );
+            }
+        }
+
+        $occurances = array_filter($occurances, function ($occurance) {
+            return $occurance->name()->type() !== PhpName::TYPE_NAMESPACE;
+        });
+
+        foreach ($occurances as $occurance) {
+            $name = $occurance->name();
+
+            foreach ($renames as $rename) {
+                if ($rename->affects($name)) {
+                    $buffer = $this->editor->openBuffer($occurance->file());
+                    $buffer->replaceString($occurance->declarationLine(), $name->relativeName(), $rename->change($name)->relativeName());
+                    continue 2;
+                }
+            }
+        }
+
+        return $renames;
     }
 }
