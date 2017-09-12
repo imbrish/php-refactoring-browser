@@ -31,9 +31,9 @@ The refactoring browser is used with:
 
     php refactor.phar <refactoring> <arg1>...<argN>
 
-It outputs a diff to the screen and you can apply it to your code by piping it to ``patch -p1``:
+It outputs a diff to the screen and you can apply it to your code by piping it to ``patch -p1 --binary``:
 
-    php refactor.phar <refactoring> <arg1>...<argN> | patch -p1
+    php refactor.phar <refactoring> <arg1>...<argN> | patch -p1 --binary
 
 ### Editor Plugins
 
