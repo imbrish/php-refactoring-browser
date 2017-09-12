@@ -133,26 +133,9 @@ class FixMovedClasses
         $classes = $this->codeAnalysis->findClasses($phpFile);
         $class = array_shift($classes);
 
-        // Find file namespace. Check if it hasn't been updated too.
-        $namespace = array_filter($occurances, function ($occurance) {
-            return $occurance->name()->type() === PhpName::TYPE_NAMESPACE;
-        });
-
-        if (count($namespace) == 0) {
-            $namespace = null;
-        }
-        else {
-            $namespace = reset($namespace)->name();
-
-            foreach ($renames as $rename) {
-                if ($rename->affectsNamespace($namespace)) {
-                    $namespace = $rename->change($namespace);
-                    break;
-                }
-            }
-
-            $namespace = $namespace->fullyQualifiedName();
-        }
+        // Find file namespace basing on file structure.
+        // It's safe to do, as we fixed invalid defined namespaces already.
+        $namespace = $phpFile->extractPsr0ClassName()->fullyQualifiedNamespace();
 
         // This variables are used purely for formating of use statements.
         $hadUses = false;
@@ -214,17 +197,19 @@ class FixMovedClasses
                 if ($rename->affects($name)) {
                     $change = $rename->change($name);
 
-                    if ($name->isFullyQualified()) {
-                        // Update class name in usage of fully qualified class.
-                        $buffer->replaceString($line, $name->relativeName(), $change->relativeName());
-                    }
-                    else if ($namespace !== $change->fullyQualifiedNamespace() && ! in_array($change->fullyQualifiedName(), $uses)) {
-                        // Add missing use statements for usage of non fully qualified class.
-                        $buffer->append($lastUseStatementLine, [sprintf('use %s;', $change->fullyQualifiedName())]);
+                    if ($namespace !== $change->fullyQualifiedNamespace()) {
+                        if ($name->isFullyQualified()) {
+                            // Update class name in usage of fully qualified class.
+                            $buffer->replaceString($line, $name->relativeName(), $change->relativeName());
+                        }
+                        else if (! in_array($change->fullyQualifiedName(), $uses)) {
+                            // Add missing use statements for usage of non fully qualified class.
+                            $buffer->append($lastUseStatementLine, [sprintf('use %s;', $change->fullyQualifiedName())]);
 
-                        $uses[] = $change->fullyQualifiedName();
+                            $uses[] = $change->fullyQualifiedName();
 
-                        $hasUses = true;
+                            $hasUses = true;
+                        }
                     }
 
                     continue 2;
