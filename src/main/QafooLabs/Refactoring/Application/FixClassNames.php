@@ -91,6 +91,8 @@ class FixClassNames
         }
 
         $this->editor->save();
+
+        return $renames;
     }
 }
 
