@@ -14,6 +14,7 @@
 namespace QafooLabs\Refactoring\Domain\Model;
 
 use QafooLabs\Collections\Hashable;
+use QafooLabs\Refactoring\Utils\NameFixer;
 
 /**
  * Representation of a Name in PHP
@@ -55,20 +56,8 @@ class PhpName implements Hashable
      */
     public function fixNames($base)
     {
-        $base = preg_replace('/(?:\/)*$/u', '/', str_replace('\\', '/', $base));
-        $pattern = '/^' . preg_quote($base, '/') . '/';
-
-        foreach (['fullyQualifiedName', 'relativeName'] as $name) {
-            $value = $this->$name;
-
-            $value = str_replace('\\', '/', $value);
-            $value = preg_replace($pattern, '', $value);
-
-            $value = implode('\\', array_map(function ($part) {
-                return ucfirst($part);
-            }, explode('/', $value)));
-
-            $this->$name = $value;
+        foreach (['fullyQualifiedName', 'relativeName'] as $key) {
+            $this->$key = NameFixer::className($this->$key, $base);
         }
 
         return $this;
