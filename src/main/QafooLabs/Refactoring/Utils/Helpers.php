@@ -29,12 +29,12 @@ class Helpers
         return preg_replace($pattern, '', str_replace('\\', '/', $path));
     }
 
-    public static function shouldIgnore($path, $ignores)
+    public static function pathInList($path, $list)
     {
         $path = str_replace('\\', '/', $path) . '/';
 
-        foreach ($ignores as $ignore) {
-            $pattern = '/^' . preg_quote($ignore, '/') . '/';
+        foreach ($list as $item) {
+            $pattern = '/^' . preg_quote($item, '/') . '/';
 
             if (preg_match($pattern, $path)) {
                 return true;
@@ -42,5 +42,10 @@ class Helpers
         }
 
         return false;
+    }
+
+    public static function splitOption($option)
+    {
+        return array_filter(explode(',', $option));
     }
 }

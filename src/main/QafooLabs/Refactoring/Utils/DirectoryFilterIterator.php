@@ -28,7 +28,7 @@ class DirectoryFilterIterator extends RecursiveFilterIterator
 
     public function accept()
     {
-        return ! Helpers::shouldIgnore($this->getPathname(), $this->exclude);
+        return ! Helpers::pathInList($this->getPathname(), $this->exclude);
     }
 
     public function getChildren()

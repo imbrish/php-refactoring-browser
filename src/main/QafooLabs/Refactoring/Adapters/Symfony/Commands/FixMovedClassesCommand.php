@@ -38,13 +38,15 @@ class FixMovedClassesCommand extends Command
             ->addArgument('dir', InputArgument::IS_ARRAY | InputArgument::REQUIRED, 'Directory that contains the source code to refactor')
             ->addOption('base', 'b', InputOption::VALUE_OPTIONAL, 'Project base directory', '')
             ->addOption('skip', 's', InputOption::VALUE_OPTIONAL, 'Directories relative to base directory that should be skipped', '')
+            ->addOption('ignore', 'i', InputOption::VALUE_OPTIONAL, 'Directories in which invalid namespace should be ignored', '')
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $base = Helpers::folderPath($input->getOption('base') ?: getcwd());
-        $skip = array_filter(explode(',', $input->getOption('skip')));
+        $skip = Helpers::splitOption($input->getOption('skip'));
+        $ignore = Helpers::splitOption($input->getOption('ignore'));
 
         $directory = new Directory($input->getArgument('dir'), $base);
 
@@ -53,6 +55,6 @@ class FixMovedClassesCommand extends Command
         $editor = new PatchEditor(new OutputPatchCommand($output));
 
         $fixMovedClasses = new FixMovedClasses($codeAnalysis, $editor, $phpNameScanner);
-        $fixMovedClasses->refactor($directory, $base, $skip);
+        $fixMovedClasses->refactor($directory, $base, $skip, $ignore);
     }
 }
