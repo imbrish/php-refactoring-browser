@@ -20,6 +20,7 @@ use QafooLabs\Refactoring\Domain\Model\PhpName;
 use QafooLabs\Refactoring\Domain\Model\PhpNameChange;
 
 use CallbackFilterIterator;
+use QafooLabs\Refactoring\Utils\NameFixer;
 
 class FixMovedClasses
 {
@@ -36,8 +37,11 @@ class FixMovedClasses
 
     public function refactor(Directory $directory, $base)
     {
+        // Get paths to ignore from .gitignore file.
+        $ignorePaths = $this->getPathsToIgnore($base);
+
         // Find all files.
-        $phpFiles = $directory->findAllPhpFilesRecursivly();
+        $phpFiles = $directory->findAllPhpFilesRecursivly($ignorePaths);
 
         // Fix namespaces of all moved classes and get list of changes.
         $renames = $this->fixClassesNames($phpFiles, $base);
@@ -52,6 +56,25 @@ class FixMovedClasses
 
         // Generate diff.
         $this->editor->save();
+    }
+
+    public function getPathsToIgnore($base)
+    {
+        if (! file_exists($base . '.gitignore')) {
+            return [];
+        }
+
+        $content = file_get_contents($base . '.gitignore');
+
+        $content = preg_replace('/#.*$/m', '', $content);
+        $content = preg_replace('/^(.*?)\.(.*?)$/m', '', $content);
+        $content = trim(preg_replace('/\n{2,}/', '', $content));
+
+        return array_map(function ($path) use ($base) {
+            $path = preg_replace('/^\//', '', trim($path));
+
+            return $base . NameFixer::folderPath($path);
+        }, preg_split('/\n/', $content));
     }
 
     public function fixClassesNames(CallbackFilterIterator $phpFiles, $base)

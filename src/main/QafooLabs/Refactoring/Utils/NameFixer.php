@@ -33,4 +33,19 @@ class NameFixer
             return ucfirst($part);
         }, explode('/', $name)));
     }
+
+    public static function shouldIgnore($path, $ignores)
+    {
+        $path = str_replace('\\', '/', $path);
+
+        foreach ($ignores as $ignore) {
+            $pattern = '/^' . preg_quote($ignore, '/') . '/';
+
+            if (preg_match($pattern, $path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

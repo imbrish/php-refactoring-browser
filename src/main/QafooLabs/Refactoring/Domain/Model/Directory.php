@@ -20,6 +20,9 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use AppendIterator;
 use CallbackFilterIterator as StandardCallbackFilterIterator;
+use FilesystemIterator;
+
+use QafooLabs\Refactoring\Utils\NameFixer;
 
 /**
  * A directory in a project.
@@ -49,7 +52,7 @@ class Directory
     /**
      * @return File[]
      */
-    public function findAllPhpFilesRecursivly()
+    public function findAllPhpFilesRecursivly($ignorePaths = [])
     {
         $workingDirectory = $this->workingDirectory;
 
@@ -60,11 +63,12 @@ class Directory
                 new CallbackTransformIterator(
                     new CallbackFilterIterator(
                         new RecursiveIteratorIterator(
-                            new RecursiveDirectoryIterator($path),
+                            new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
                             RecursiveIteratorIterator::LEAVES_ONLY
                         ),
-                        function (SplFileInfo $file) {
-                            return substr($file->getFilename(), -4) === ".php";
+                        function (SplFileInfo $file) use ($ignorePaths) {
+                            return ! NameFixer::shouldIgnore($file->getPathname(), $ignorePaths)
+                                && substr($file->getFilename(), -4) === ".php";
                         }
                     ),
                     function ($file) use ($workingDirectory) {
@@ -75,6 +79,7 @@ class Directory
         }
 
         $files = iterator_to_array($iterator);
+
         return new StandardCallbackFilterIterator($iterator, function($file, $filename) use ($files) {
             return !in_array($filename, $files);
         });
