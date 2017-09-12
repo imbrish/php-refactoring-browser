@@ -161,7 +161,7 @@ class FixMovedClasses
                         // Replace use statement with updated class name.
                         $buffer->replaceString($line, $name->relativeName(), $change->relativeName());
 
-                        $uses[] = $rename->change($name)->fullyQualifiedName();
+                        $uses[] = $change->fullyQualifiedName();
 
                         $lastUseStatementLine = $line;
                         $hasUses = true;
@@ -197,6 +197,8 @@ class FixMovedClasses
                     else if ($namespace !== $change->fullyQualifiedNamespace() && ! in_array($change->fullyQualifiedName(), $uses)) {
                         // Add missing use statements for usage of non fully qualified class.
                         $buffer->append($lastUseStatementLine, [sprintf('use %s;', $change->fullyQualifiedName())]);
+
+                        $uses[] = $change->fullyQualifiedName();
 
                         $hasUses = true;
                     }
