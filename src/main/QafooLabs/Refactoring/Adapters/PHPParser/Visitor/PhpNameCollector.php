@@ -21,6 +21,7 @@ use PHPParser_Node_Stmt_Class;
 use PHPParser_Node_Stmt_UseUse;
 use PHPParser_Node_Expr_New;
 use PHPParser_Node_Expr_StaticCall;
+use PHPParser_Node_Expr_ClassConstFetch;
 
 /**
  * Visitor for PHP Parser collecting PHP Names from an AST.
@@ -57,7 +58,6 @@ class PhpNameCollector extends \PHPParser_NodeVisitorAbstract
                 }
             }
         }
-
 
         if ($node instanceof PHPParser_Node_Expr_New && $node->class instanceof PHPParser_Node_Name) {
             $usedAlias = implode('\\', $node->class->parts);
@@ -124,6 +124,19 @@ class PhpNameCollector extends \PHPParser_NodeVisitorAbstract
                 'line' => $node->name->getLine(),
                 'type' => 'namespace',
             );
+        }
+
+        if ($node instanceof PHPParser_Node_Expr_ClassConstFetch && $node->class instanceof PHPParser_Node_Name) {
+            if ($node->name === 'class') {
+                $usedAlias = implode('\\', $node->class->parts);
+
+                $this->nameDeclarations[] = array(
+                    'alias' => $usedAlias,
+                    'fqcn' => $this->fullyQualifiedNameFor($usedAlias, $node->class->isFullyQualified()),
+                    'line' => $node->getLine(),
+                    'type' => 'usage',
+                );
+            }
         }
     }
 
