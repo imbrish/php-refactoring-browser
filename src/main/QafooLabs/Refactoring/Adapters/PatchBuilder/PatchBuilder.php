@@ -149,8 +149,8 @@ class PatchBuilder
         $builder = new PhpDiffBuilder();
 
         $diff = $builder->buildPatch(
-            'a/' . $this->path,
-            'b/' . $this->path,
+            'a/' . str_replace('\\', '/', $this->path),
+            'b/' . str_replace('\\', '/', $this->path),
             $this->buffer
         );
 
