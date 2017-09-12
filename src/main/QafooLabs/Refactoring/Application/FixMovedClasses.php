@@ -18,7 +18,7 @@ use QafooLabs\Refactoring\Domain\Model\Directory;
 use QafooLabs\Refactoring\Domain\Model\File;
 use QafooLabs\Refactoring\Domain\Model\PhpName;
 use QafooLabs\Refactoring\Domain\Model\PhpNameChange;
-use QafooLabs\Refactoring\Domain\Model\PhpNames\NoImportedUsagesFilter;
+
 use CallbackFilterIterator;
 
 class FixMovedClasses
@@ -44,6 +44,9 @@ class FixMovedClasses
         $renames = $this->fixClassesNames($phpFiles, $base);
 
         // Update old namespaces used by other files.
+        foreach ($phpFiles as $phpFile) {
+            $this->updateOldNamespaces($phpFile, $renames);
+        }
 
         // Add missing namespaces for files that used to be at the same path.
 
@@ -56,16 +59,9 @@ class FixMovedClasses
     public function fixClassesNames(CallbackFilterIterator $phpFiles, $base)
     {
         $renames = new Set();
-        $occurances = array();
-        $noImportedUsages = new NoImportedUsagesFilter();
 
         foreach ($phpFiles as $phpFile) {
             $classes = $this->codeAnalysis->findClasses($phpFile);
-
-            $occurances = array_merge(
-                $noImportedUsages->filter($this->nameScanner->findNames($phpFile)),
-                $occurances
-            );
 
             if (count($classes) !== 1) {
                 continue;
@@ -92,22 +88,55 @@ class FixMovedClasses
             }
         }
 
-        $occurances = array_filter($occurances, function ($occurance) {
-            return $occurance->name()->type() !== PhpName::TYPE_NAMESPACE;
+        return $renames;
+    }
+
+    public function updateOldNamespaces(File $phpFile, Set $renames)
+    {
+        $classes = $this->codeAnalysis->findClasses($phpFile);
+        $occurances = $this->nameScanner->findNames($phpFile);
+
+        // Find file namespace.
+        $namespace = array_filter($occurances, function ($occurance) {
+            return $occurance->name()->type() === PhpName::TYPE_NAMESPACE;
         });
+
+        $namespace = $namespace ? reset($namespace)->name()->fullyQualifiedName() : null;
+
+        // Fix use statements and create list of used classes.
+        $uses = [];
 
         foreach ($occurances as $occurance) {
             $name = $occurance->name();
+            $line = $occurance->declarationLine();
+
+            if ($name->type() !== PhpName::TYPE_USE) {
+                continue;
+            }
 
             foreach ($renames as $rename) {
                 if ($rename->affects($name)) {
                     $buffer = $this->editor->openBuffer($occurance->file());
-                    $buffer->replaceString($occurance->declarationLine(), $name->relativeName(), $rename->change($name)->relativeName());
+                    $change = $rename->change($name);
+
+                    if ($namespace === $change->namespaceName()->fullyQualifiedName()) {
+                        // Use statement is no longer necessary if classes are now under the same namespace.
+                        $buffer->removeLine($line);
+                    }
+                    else {
+                        // Replace class in use statement.
+                        $buffer->replaceString($line, $name->relativeName(), $change->relativeName());
+                        $uses[] = $rename->change($name)->fullyQualifiedName();
+                    }
+
                     continue 2;
                 }
             }
+
+            $uses[] = $name->fullyQualifiedName();
         }
 
-        return $renames;
+        // Fix usage of the class and add new use statements if necessary.
+        
     }
 }

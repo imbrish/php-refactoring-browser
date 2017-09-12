@@ -44,6 +44,11 @@ class PatchBuffer implements EditorBuffer
         $this->builder->appendToLine($line, $newLines);
     }
 
+    public function removeLine($line)
+    {
+        $this->builder->removeLine($line);
+    }
+
     public function replaceString($line, $oldToken, $newToken)
     {
         if ($oldToken === $newToken) {
