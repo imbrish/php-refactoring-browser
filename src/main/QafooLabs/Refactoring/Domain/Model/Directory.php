@@ -22,7 +22,7 @@ use AppendIterator;
 use CallbackFilterIterator as StandardCallbackFilterIterator;
 use FilesystemIterator;
 
-use QafooLabs\Refactoring\Utils\NameFixer;
+use QafooLabs\Refactoring\Utils\DirectoryFilterIterator;
 
 /**
  * A directory in a project.
@@ -63,12 +63,14 @@ class Directory
                 new CallbackTransformIterator(
                     new CallbackFilterIterator(
                         new RecursiveIteratorIterator(
-                            new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+                            new DirectoryFilterIterator(
+                                new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+                                $ignorePaths
+                            ),
                             RecursiveIteratorIterator::LEAVES_ONLY
                         ),
-                        function (SplFileInfo $file) use ($ignorePaths) {
-                            return ! NameFixer::shouldIgnore($file->getPathname(), $ignorePaths)
-                                && substr($file->getFilename(), -4) === ".php";
+                        function (SplFileInfo $file) {
+                            return substr($file->getFilename(), -4) === ".php";
                         }
                     ),
                     function ($file) use ($workingDirectory) {
