@@ -23,6 +23,7 @@ use QafooLabs\Refactoring\Domain\Model\PhpName;
 use TokenReflection\Broker;
 use TokenReflection\Broker\Backend\Memory;
 use TokenReflection\ReflectionNamespace;
+use TokenReflection\Exception\ParseException;
 
 class StaticCodeAnalysis extends CodeAnalysis
 {
@@ -95,13 +96,20 @@ class StaticCodeAnalysis extends CodeAnalysis
      * @param File $file
      * @return PhpClass[]
      */
-    public function findClasses(File $file)
+    public function findClasses(File $phpFile)
     {
         $classes = array();
 
         $this->broker = new Broker(new Memory);
 
-        $file = $this->broker->processString($file->getCode(), $file->getRelativePath(), true);
+        try {
+            $file = $this->broker->processString($phpFile->getCode(), $phpFile->getRelativePath(), true);
+        }
+        catch (ParseException $excpetion) {
+            // When this fails let's revert to simple manual parsing.
+            return $this->crudeFindClasses($phpFile);
+        }
+
         foreach ($file->getNamespaces() as $namespace) {
             $noNamespace = ReflectionNamespace::NO_NAMESPACE_NAME === $namespace->getName();
             foreach ($namespace->getClasses() as $class) {
@@ -109,6 +117,37 @@ class StaticCodeAnalysis extends CodeAnalysis
                     PhpName::createDeclarationName($class->getName()),
                     $class->getStartLine(),
                     $noNamespace ? 0 : $namespace->getStartLine()
+                );
+            }
+        }
+
+        return $classes;
+    }
+
+    /**
+     * @param File $file
+     * @return PhpClass[]
+     */
+    public function crudeFindClasses(File $file)
+    {
+        $classes = array();
+
+        $namespace = null;
+        $namespaceLine = 0;
+
+        $lines = preg_split('/\r\n?|\n/', $file->getCode());
+
+        foreach ($lines as $l => $line) {
+            if (preg_match('/^\s*namespace\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\\\\[a-zA-Z_][a-zA-Z0-9_]*)*)\s*;/i', $line, $match)) {
+                $namespace = $match[1];
+                $namespaceLine = $l + 1;
+            }
+            else if (preg_match('/^\s*class\s*([a-zA-Z_][a-zA-Z0-9_]*)[\s$]/i', $line, $match)) {
+                $className = trim($namespace . '\\' . $match[1], '\\');
+                $classes[] = new PhpClass(
+                    PhpName::createDeclarationName($className),
+                    $l + 1,
+                    $namespaceLine
                 );
             }
         }
