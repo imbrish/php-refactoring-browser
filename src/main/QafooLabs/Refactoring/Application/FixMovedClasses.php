@@ -35,10 +35,10 @@ class FixMovedClasses
         $this->nameScanner = $nameScanner;
     }
 
-    public function refactor(Directory $directory, $base)
+    public function refactor(Directory $directory, $base, $ignore)
     {
         // Get paths to ignore from .gitignore file.
-        $ignorePaths = $this->getPathsToIgnore($base);
+        $ignorePaths = $this->getPathsToIgnore($base, $ignore);
 
         // Find all files.
         $phpFiles = $directory->findAllPhpFilesRecursivly($ignorePaths);
@@ -58,10 +58,10 @@ class FixMovedClasses
         $this->editor->save();
     }
 
-    public function getPathsToIgnore($base)
+    public function getPathsToIgnore($base, $append = [])
     {
         if (! file_exists($base . '.gitignore')) {
-            return [];
+            return $append;
         }
 
         $content = file_get_contents($base . '.gitignore');
@@ -74,7 +74,7 @@ class FixMovedClasses
             $path = preg_replace('/^\//', '', trim($path));
 
             return $base . NameFixer::folderPath($path);
-        }, preg_split('/\n/', $content));
+        }, array_merge(preg_split('/\n/', $content), $append));
     }
 
     public function fixClassesNames(CallbackFilterIterator $phpFiles, $base)
