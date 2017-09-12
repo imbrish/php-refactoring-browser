@@ -82,6 +82,10 @@ class PhpName implements Hashable
         $otherParts = self::stringToParts($other->fullyQualifiedName);
         $thisParts = self::stringToParts($this->fullyQualifiedName);
 
+        if (count($otherParts) > count($thisParts)) {
+            return false;
+        }
+
         $otherLength = count($otherParts) - 1;
         $otherRelativeLength = count(self::stringToParts($other->relativeName));
         $thisRelativeStart = count($thisParts) - count(self::stringToParts($this->relativeName)) - 1;

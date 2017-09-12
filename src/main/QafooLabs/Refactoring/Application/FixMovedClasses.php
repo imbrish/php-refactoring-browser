@@ -89,7 +89,7 @@ class FixMovedClasses
                 continue;
             }
 
-            $hasNamespace = $class->declarationName()->fullyQualifiedNamespace() !== '';
+            $hasNamespace = ! empty($class->declarationName()->fullyQualifiedNamespace());
             $line = $class->namespaceDeclarationLine();
 
             $currentClassName = $class->declarationName()->fixNames($base);
@@ -151,6 +151,7 @@ class FixMovedClasses
 
             foreach ($renames as $rename) {
                 if ($rename->affects($name)) {
+
                     $change = $rename->change($name);
 
                     if ($namespace === $change->fullyQualifiedNamespace()) {
@@ -208,7 +209,7 @@ class FixMovedClasses
             }
         }
 
-        // Find formating of use statements.
+        // Fix formating of use statements.
         if ($hadUses && ! $hasUses) {
             // Delete unnecessary empty line after namespace.
             $buffer->removeEmptyLine($lastUseStatementLine + 2);
