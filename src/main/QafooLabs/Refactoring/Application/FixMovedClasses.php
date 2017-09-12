@@ -58,10 +58,23 @@ class FixMovedClasses
         $this->editor->save();
     }
 
-    public function pathsToExclude($base, $append = [])
+    public function pathsToExclude($base, $skip = [])
+    {
+        $exclude = array_merge(
+            ['.git'],
+            $this->readGitIgnore($base),
+            $skip
+        );
+
+        return array_unique(array_map(function ($path) use ($base) {
+            return $base . Helpers::folderPath(ltrim(trim($path), '/'));
+        }, $exclude));
+    }
+
+    public function readGitIgnore($base)
     {
         if (! file_exists($base . '.gitignore')) {
-            return $append;
+            return [];
         }
 
         $content = file_get_contents($base . '.gitignore');
@@ -70,11 +83,7 @@ class FixMovedClasses
         $content = preg_replace('/^(.*?)\.(.*?)$/m', '', $content);
         $content = trim(preg_replace('/\n{2,}/', '', $content));
 
-        return array_map(function ($path) use ($base) {
-            $path = preg_replace('/^\//', '', trim($path));
-
-            return $base . Helpers::folderPath($path);
-        }, array_merge(preg_split('/\n/', $content), $append));
+        return preg_split('/\n/', $content);
     }
 
     public function fixClassesNames(CallbackFilterIterator $phpFiles, $base)

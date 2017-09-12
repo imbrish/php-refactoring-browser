@@ -31,7 +31,7 @@ class Helpers
 
     public static function shouldIgnore($path, $ignores)
     {
-        $path = str_replace('\\', '/', $path);
+        $path = str_replace('\\', '/', $path) . '/';
 
         foreach ($ignores as $ignore) {
             $pattern = '/^' . preg_quote($ignore, '/') . '/';
