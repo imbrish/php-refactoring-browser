@@ -51,21 +51,6 @@ class PhpName implements Hashable
     /**
      * Would this name be affected by a change to the given name?
      *
-     * @param string $base
-     * @return bool
-     */
-    public function fixNames($base)
-    {
-        foreach (['fullyQualifiedName', 'relativeName'] as $key) {
-            $this->$key = NameFixer::className($this->$key, $base);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Would this name be affected by a change to the given name?
-     *
      * @param PhpName $other
      * @return bool
      */

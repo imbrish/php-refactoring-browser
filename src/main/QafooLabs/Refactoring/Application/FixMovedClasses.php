@@ -92,8 +92,8 @@ class FixMovedClasses
             $hasNamespace = ! empty($class->declarationName()->fullyQualifiedNamespace());
             $line = $class->namespaceDeclarationLine();
 
-            $currentClassName = $class->declarationName()->fixNames($base);
-            $expectedClassName = $phpFile->extractPsr0ClassName()->fixNames($base);
+            $currentClassName = $class->declarationName();
+            $expectedClassName = $phpFile->extractPsr0ClassName();
 
             $buffer = $this->editor->openBuffer($phpFile); // This is weird to be required here
 

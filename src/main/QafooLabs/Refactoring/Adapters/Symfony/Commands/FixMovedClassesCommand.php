@@ -43,9 +43,10 @@ class FixMovedClassesCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $directory = new Directory($input->getArgument('dir'), getcwd());
-        $base = NameFixer::folderPath($input->getOption('base'));
+        $base = NameFixer::folderPath($input->getOption('base') ?: getcwd());
         $skip = array_filter(explode(',', $input->getOption('skip')));
+
+        $directory = new Directory($input->getArgument('dir'), $base);
 
         $codeAnalysis = new StaticCodeAnalysis();
         $phpNameScanner = new ParserPhpNameScanner();

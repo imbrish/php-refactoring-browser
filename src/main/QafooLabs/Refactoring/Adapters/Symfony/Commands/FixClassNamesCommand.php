@@ -63,8 +63,9 @@ HELP
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $directory = new Directory($input->getArgument('dir'), getcwd());
-        $base = NameFixer::folderPath($input->getOption('base'));
+        $base = NameFixer::folderPath($input->getOption('base') ?: getcwd());
+
+        $directory = new Directory($input->getArgument('dir'), $base);
 
         $codeAnalysis = new StaticCodeAnalysis();
         $phpNameScanner = new ParserPhpNameScanner();

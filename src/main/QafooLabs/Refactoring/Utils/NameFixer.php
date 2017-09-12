@@ -19,7 +19,7 @@ class NameFixer
     public static function folderPath($path)
     {
         // Convert slashes and add trailing slash.
-        return preg_replace('/(?:\/)*$/u', '/', str_replace('\\', '/', $path));
+        return rtrim(str_replace('\\', '/', $path), '/') . '/';
     }
 
     public static function className($name, $base)
@@ -32,6 +32,13 @@ class NameFixer
         return implode('\\', array_map(function ($part) {
             return ucfirst($part);
         }, explode('/', $name)));
+    }
+
+    public static function removeBasePath($path, $base)
+    {
+        $pattern = '/^' . preg_quote(str_replace('\\', '/', $base), '/') . '/';
+
+        return preg_replace($pattern, '', str_replace('\\', '/', $path));
     }
 
     public static function shouldIgnore($path, $ignores)

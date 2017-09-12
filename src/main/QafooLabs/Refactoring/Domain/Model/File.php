@@ -13,6 +13,8 @@
 
 namespace QafooLabs\Refactoring\Domain\Model;
 
+use QafooLabs\Refactoring\Utils\NameFixer;
+
 /**
  * Represent a file in the project being refactored.
  */
@@ -34,15 +36,10 @@ class File
         }
 
         $code = file_get_contents($path);
-        $workingDirectory = rtrim($workingDirectory, '/\\');
-        $relativePath = ltrim(str_replace($workingDirectory, "", $path), "/\\");
 
-        // converted mixed, wrapped, absolute paths on windows
-        if (DIRECTORY_SEPARATOR === '\\' && strpos($relativePath, '://') !== FALSE) {
-            $relativePath = str_replace('\\', '/', $relativePath);
-        }
+        $relativePath = NameFixer::removeBasePath($path, $workingDirectory);
 
-        return new self($relativePath, $code);
+        return new self(ltrim($relativePath, '/'), $code);
     }
 
     public function __construct($relativePath, $code)
@@ -99,25 +96,11 @@ class File
     {
         $file = ltrim($this->getRelativePath(), DIRECTORY_SEPARATOR);
 
-        $separator = DIRECTORY_SEPARATOR;
-        if (preg_match('(^([a-z]+:\/\/))', $file, $matches)) {
-            $file = substr($file, strlen($matches[1]));
-            $separator = '/';
-        }
-
-        $parts = explode($separator, $file);
-        $namespace = array();
-
-        foreach ($parts as $part) {
-            if ($this->startsWithLowerCase($part)) {
-                $namespace = array();
-                continue;
-            }
-
-            $namespace[] = $part;
-        }
+        $namespace = explode('/', $file);
 
         array_pop($namespace);
+
+        $namespace = array_map('ucfirst', $namespace);
 
         return str_replace(".php", "", implode("\\", $namespace));
     }
