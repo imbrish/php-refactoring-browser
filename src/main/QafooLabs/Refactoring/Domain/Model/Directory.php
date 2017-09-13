@@ -54,37 +54,28 @@ class Directory
     {
         $iterator = new AppendIterator;
 
-        $known = [];
-
         foreach ($this->paths as $path) {
             $iterator->append(
-                new CallbackTransformIterator(
-                    new CallbackFilterIterator(
-                        new RecursiveIteratorIterator(
-                            new DirectoryFilterIterator(
-                                new RecursiveDirectoryIterator(
-                                    realpath($path),
-                                    FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS
-                                ),
-                                $this->exclude
+                new CallbackFilterIterator(
+                    new RecursiveIteratorIterator(
+                        new DirectoryFilterIterator(
+                            new RecursiveDirectoryIterator(
+                                realpath($path),
+                                FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS
                             ),
-                            RecursiveIteratorIterator::LEAVES_ONLY
+                            $this->exclude
                         ),
-                        function (SplFileInfo $file) use (&$known) {
-                            if (substr($name = $file->getPathname(), -4) !== '.php' || isset($known[$name])) {
-                                return false;
-                            }
-
-                            return $known[$name] = true;
-                        }
+                        RecursiveIteratorIterator::LEAVES_ONLY
                     ),
-                    function ($file) {
-                        return File::createFromPath($file->getPathname());
+                    function (SplFileInfo $file) {
+                        return substr($name = $file->getPathname(), -4) === '.php';
                     }
                 )
             );
         }
 
-        return iterator_to_array($iterator);
+        return array_map(function ($file) {
+            return File::createFromPath($file->getPathname());
+        }, iterator_to_array($iterator));
     }
 }
