@@ -14,7 +14,6 @@
 namespace QafooLabs\Refactoring\Application;
 
 use QafooLabs\Collections\Set;
-use QafooLabs\Refactoring\Utils\Helpers;
 use QafooLabs\Refactoring\Domain\Model\Directory;
 use QafooLabs\Refactoring\Domain\Model\File;
 use QafooLabs\Refactoring\Domain\Model\PhpName;
@@ -22,21 +21,13 @@ use QafooLabs\Refactoring\Domain\Model\PhpNameChange;
 
 class FixMovedClasses
 {
-    private $codeAnalysis;
     private $editor;
     private $nameScanner;
-    private $ignore;
 
-    public function __construct($codeAnalysis, $editor, $nameScanner)
+    public function __construct($editor, $nameScanner)
     {
-        $this->codeAnalysis = $codeAnalysis;
         $this->editor = $editor;
         $this->nameScanner = $nameScanner;
-    }
-
-    public function setIgnoredDirs($ignore)
-    {
-        $this->ignore = Helpers::relativePathsList($ignore);
     }
 
     public function refactor(Directory $directory)
@@ -64,21 +55,11 @@ class FixMovedClasses
         $renames = new Set();
 
         foreach ($phpFiles as $phpFile) {
-            if (Helpers::pathInList($phpFile->getRelativePath(), $this->ignore)) {
+            if (! $phpFile->shouldFixNamespace()) {
                 continue;
             }
 
-            $classes = $this->codeAnalysis->findClasses($phpFile);
-            $class = array_shift($classes);
-
-            if (! $class) {
-                continue;
-            }
-
-            $hasNamespace = ! empty($class->declarationName()->fullyQualifiedNamespace());
-            $line = $class->namespaceDeclarationLine();
-
-            $currentClassName = $class->declarationName();
+            $currentClassName = $phpFile->getClass()->declarationName();
             $expectedClassName = $phpFile->extractPsr0ClassName();
 
             $buffer = $this->editor->openBuffer($phpFile); // This is weird to be required here
@@ -90,8 +71,12 @@ class FixMovedClasses
             if (!$expectedClassName->namespaceName()->equals($currentClassName->namespaceName())) {
                 $renames->add(new PhpNameChange($currentClassName->fullyQualified(), $expectedClassName->fullyQualified()));
 
-                if ($hasNamespace) {
-                    $buffer->replaceString($line, $currentClassName->fullyQualifiedNamespace(), $expectedClassName->fullyQualifiedNamespace());
+                if ($phpFile->hasNamespaceDeclaration()) {
+                    $buffer->replaceString(
+                        $phpFile->namespaceDeclarationLine(), 
+                        $currentClassName->fullyQualifiedNamespace(),
+                        $expectedClassName->fullyQualifiedNamespace()
+                    );
                 }
                 else {
                     $buffer->append(1, ['', sprintf('namespace %s;', $expectedClassName->fullyQualifiedNamespace())]);
@@ -107,20 +92,13 @@ class FixMovedClasses
         $occurances = $this->nameScanner->findNames($phpFile);
         $buffer = $this->editor->openBuffer($phpFile);
 
-        $classes = $this->codeAnalysis->findClasses($phpFile);
-        $class = array_shift($classes);
-
         // Find namespace from file path, as we fixed invalid namespaces already.
-        if (! Helpers::pathInList($phpFile->getRelativePath(), $this->ignore)) {
+        if ($phpFile->shouldFixNamespace()) {
             $namespace = $phpFile->extractPsr0ClassName()->fullyQualifiedNamespace();
         }
         // If file was skipped from fixing namespaces we will revert to defined one.
         else {
-            $namespace = array_filter($occurances, function ($occurance) {
-                return $occurance->name()->type() === PhpName::TYPE_NAMESPACE;
-            });
-
-            $namespace = $namespace ? reset($namespace)->name()->fullyQualifiedName() : null;
+            $namespace = $phpFile->fullyQualifiedNamespace();
         }
 
         // This variables are used purely for formating of use statements.
@@ -128,8 +106,9 @@ class FixMovedClasses
         $hasUses = false;
 
         // Fix use statements and create list of used classes.
+        $lastUseStatementLine = $phpFile->namespaceDeclarationLine() + 1;
+
         $uses = [];
-        $lastUseStatementLine = ($class ? $class->namespaceDeclarationLine() : 0) + 1;
 
         foreach ($occurances as $occurance) {
             $name = $occurance->name();

@@ -25,6 +25,7 @@ use QafooLabs\Refactoring\Adapters\TokenReflection\StaticCodeAnalysis;
 use QafooLabs\Refactoring\Adapters\PatchBuilder\PatchEditor;
 use QafooLabs\Refactoring\Adapters\Symfony\OutputPatchCommand;
 use QafooLabs\Refactoring\Domain\Model\Directory;
+use QafooLabs\Refactoring\Domain\Model\File;
 
 use QafooLabs\Refactoring\Utils\Helpers;
 
@@ -39,6 +40,7 @@ class FixMovedClassesCommand extends Command
             ->addOption('base', 'b', InputOption::VALUE_OPTIONAL, 'Project base directory', '')
             ->addOption('skip', 's', InputOption::VALUE_OPTIONAL, 'Directories relative to base directory that should be skipped', '')
             ->addOption('ignore', 'i', InputOption::VALUE_OPTIONAL, 'Directories in which invalid namespace should be ignored', '')
+            ->addOption('loose', 'l', InputOption::VALUE_NONE, 'Automatically ignore files without namespace')
         ;
     }
 
@@ -46,15 +48,19 @@ class FixMovedClassesCommand extends Command
     {
         Helpers::setBasePath($input->getOption('base'));
 
+        File::setCodeAnalysis(new StaticCodeAnalysis());
+        File::setOptions(
+            Helpers::splitOption($input->getOption('ignore')),
+            $input->getOption('loose')
+        );
+
         $directory = new Directory($input->getArgument('dir'));
         $directory->setExcludedDirs(Helpers::splitOption($input->getOption('skip')));
 
-        $codeAnalysis = new StaticCodeAnalysis();
         $phpNameScanner = new ParserPhpNameScanner();
         $editor = new PatchEditor(new OutputPatchCommand($output));
 
-        $fixMovedClasses = new FixMovedClasses($codeAnalysis, $editor, $phpNameScanner);
-        $fixMovedClasses->setIgnoredDirs(Helpers::splitOption($input->getOption('ignore')));
+        $fixMovedClasses = new FixMovedClasses($editor, $phpNameScanner);
         $fixMovedClasses->refactor($directory);
     }
 }

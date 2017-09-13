@@ -20,8 +20,24 @@ use QafooLabs\Refactoring\Utils\Helpers;
  */
 class File
 {
+    private static $ignore;
+    private static $loose;
+    private static $codeAnalysis;
+
+    public static function setOptions($ignore, $loose)
+    {
+        static::$ignore = Helpers::relativePathsList($ignore);
+        static::$loose = !! $loose;
+    }
+
+    public static function setCodeAnalysis($codeAnalysis)
+    {
+        static::$codeAnalysis = $codeAnalysis;
+    }
+
     private $relativePath;
     private $code;
+    private $class;
 
     /**
      * @param string $path
@@ -43,6 +59,59 @@ class File
     {
         $this->relativePath = $relativePath;
         $this->code = $code;
+
+        $this->findClass();
+    }
+
+    protected function findClass()
+    {
+        $classes = static::$codeAnalysis->findClasses($this);
+        $this->class = array_shift($classes);
+    }
+
+    public function getClass()
+    {
+        return $this->class;
+    }
+
+    public function shouldFixNamespace()
+    {
+        if (is_null($this->class)) {
+            return false;
+        }
+
+        if (Helpers::pathInList($this->relativePath, static::$ignore)) {
+            return false;
+        }
+
+        if ($this->hasNamespaceDeclaration()) {
+            return true;
+        }
+
+        return ! static::$loose;
+    }
+
+    public function namespaceDeclarationLine()
+    {
+        if (is_null($this->class)) {
+            return 0;
+        }
+
+        return $this->class->namespaceDeclarationLine();
+    }
+
+    public function hasNamespaceDeclaration()
+    {
+        return $this->namespaceDeclarationLine() != 0;
+    }
+
+    public function fullyQualifiedNamespace()
+    {
+        if (is_null($this->class)) {
+            return '';
+        }
+
+        return $this->class->declarationName()->fullyQualifiedNamespace();
     }
 
     /**
