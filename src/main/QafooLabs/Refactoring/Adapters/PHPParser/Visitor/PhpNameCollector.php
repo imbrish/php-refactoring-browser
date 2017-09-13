@@ -62,12 +62,14 @@ class PhpNameCollector extends \PHPParser_NodeVisitorAbstract
         if ($node instanceof PHPParser_Node_Expr_New && $node->class instanceof PHPParser_Node_Name) {
             $usedAlias = implode('\\', $node->class->parts);
 
-            $this->nameDeclarations[] = array(
-                'alias' => $usedAlias,
-                'fqcn' => $this->fullyQualifiedNameFor($usedAlias, $node->class->isFullyQualified()),
-                'line' => $node->getLine(),
-                'type' => 'usage',
-            );
+            if (! in_array($usedAlias, ['parent', 'static', 'self'])) {
+                $this->nameDeclarations[] = array(
+                    'alias' => $usedAlias,
+                    'fqcn' => $this->fullyQualifiedNameFor($usedAlias, $node->class->isFullyQualified()),
+                    'line' => $node->getLine(),
+                    'type' => 'usage',
+                );
+            }
         }
 
         if ($node instanceof PHPParser_Node_Expr_StaticCall && $node->class instanceof PHPParser_Node_Name) {
