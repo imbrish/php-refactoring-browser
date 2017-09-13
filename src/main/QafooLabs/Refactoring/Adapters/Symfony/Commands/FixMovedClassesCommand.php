@@ -28,6 +28,8 @@ use QafooLabs\Refactoring\Domain\Model\Directory;
 use QafooLabs\Refactoring\Domain\Model\File;
 
 use QafooLabs\Refactoring\Utils\Helpers;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Process\Process;
 
 class FixMovedClassesCommand extends Command
 {
@@ -41,6 +43,7 @@ class FixMovedClassesCommand extends Command
             ->addOption('skip', 's', InputOption::VALUE_OPTIONAL, 'Directories relative to base directory that should be skipped', '')
             ->addOption('ignore', 'i', InputOption::VALUE_OPTIONAL, 'Directories in which invalid namespace should be ignored', '')
             ->addOption('loose', 'l', InputOption::VALUE_NONE, 'Automatically ignore files without namespace')
+            ->addOption('patch', null, InputOption::VALUE_NONE, 'Apply generated diff')
         ;
     }
 
@@ -57,10 +60,23 @@ class FixMovedClassesCommand extends Command
         $directory = new Directory($input->getArgument('dir'));
         $directory->setExcludedDirs(Helpers::splitOption($input->getOption('skip')));
 
+        $diffOutput = new BufferedOutput;
+
         $phpNameScanner = new ParserPhpNameScanner();
-        $editor = new PatchEditor(new OutputPatchCommand($output));
+        $editor = new PatchEditor(new OutputPatchCommand($diffOutput));
 
         $fixMovedClasses = new FixMovedClasses($editor, $phpNameScanner);
         $fixMovedClasses->refactor($directory);
+
+        if (! $input->getOption('patch')) {
+            $output->write($diffOutput->fetch());
+        }
+        else {
+            $process = new Process('patch -p1 --binary');
+            $process->setInput($diffOutput->fetch());
+            $process->run();
+
+            $output->write($process->getOutput());
+        }
     }
 }
