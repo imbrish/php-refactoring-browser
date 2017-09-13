@@ -37,6 +37,7 @@ class File
 
     private $relativePath;
     private $code;
+    private $classes;
     private $class;
 
     /**
@@ -65,8 +66,8 @@ class File
 
     protected function findClass()
     {
-        $classes = static::$codeAnalysis->findClasses($this);
-        $this->class = array_shift($classes);
+        $this->classes = static::$codeAnalysis->findClasses($this);
+        $this->class = reset($this->classes);
     }
 
     public function getClass()
@@ -76,15 +77,11 @@ class File
 
     public function shouldFixNamespace()
     {
-        if (is_null($this->class)) {
-            return false;
-        }
-
         if (Helpers::pathInList($this->relativePath, static::$ignore)) {
             return false;
         }
 
-        if ($this->hasNamespaceDeclaration()) {
+        if (count($this->classes) == 1 && $this->hasNamespaceDeclaration()) {
             return true;
         }
 
@@ -93,7 +90,7 @@ class File
 
     public function namespaceDeclarationLine()
     {
-        if (is_null($this->class)) {
+        if (! $this->class) {
             return 0;
         }
 
@@ -107,7 +104,7 @@ class File
 
     public function fullyQualifiedNamespace()
     {
-        if (is_null($this->class)) {
+        if (! $this->class) {
             return '';
         }
 
