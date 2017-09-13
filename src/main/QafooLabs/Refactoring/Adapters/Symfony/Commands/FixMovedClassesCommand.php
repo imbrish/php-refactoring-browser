@@ -55,6 +55,7 @@ class FixMovedClassesCommand extends Command
         $editor = new PatchEditor(new OutputPatchCommand($output));
 
         $fixMovedClasses = new FixMovedClasses($codeAnalysis, $editor, $phpNameScanner);
-        $fixMovedClasses->refactor($directory, $base, $skip, $ignore);
+        $fixMovedClasses->setParameters($base, $skip, $ignore);
+        $fixMovedClasses->refactor($directory);
     }
 }

@@ -27,6 +27,9 @@ class FixMovedClasses
     private $codeAnalysis;
     private $editor;
     private $nameScanner;
+    private $base;
+    private $skip;
+    private $ignore;
 
     public function __construct($codeAnalysis, $editor, $nameScanner)
     {
@@ -35,49 +38,56 @@ class FixMovedClasses
         $this->nameScanner = $nameScanner;
     }
 
-    public function refactor(Directory $directory, $base, $skip, $ignore)
+    public function setParameters($base, $skip, $ignore)
+    {
+        $this->base = $base;
+        $this->skip = $skip;
+        $this->ignore = $ignore;
+    }
+
+    public function refactor(Directory $directory)
     {
         // Get paths to ignore from .gitignore file.
-        $exclude = $this->pathsToExclude($base, $skip);
+        $exclude = $this->pathsToExclude();
 
         // Find all files.
         $phpFiles = $directory->findAllPhpFilesRecursivly($exclude);
 
         // Fix namespaces of all moved classes and get list of changes.
-        $renames = $this->fixClassesNames($phpFiles, $ignore);
+        $renames = $this->fixClassesNames($phpFiles);
 
         // Update old use statements in other files.
         // Remove unnecessary use statements in files that are now at the same path.
         // Add missing use statements for files that used to be at the same path.
         // Update usage of fully qualified class names.
         foreach ($phpFiles as $phpFile) {
-            $this->updateClassNames($phpFile, $renames, $ignore);
+            $this->updateClassNames($phpFile, $renames);
         }
 
         // Generate diff.
         $this->editor->save();
     }
 
-    public function pathsToExclude($base, $skip = [])
+    public function pathsToExclude()
     {
         $exclude = array_merge(
             ['.git'],
-            $this->readGitIgnore($base),
-            $skip
+            $this->readGitIgnore(),
+            $this->skip
         );
 
-        return array_unique(array_map(function ($path) use ($base) {
-            return $base . Helpers::folderPath(ltrim(trim($path), '/'));
+        return array_unique(array_map(function ($path) {
+            return $this->base . Helpers::folderPath(ltrim(trim($path), '/'));
         }, $exclude));
     }
 
-    public function readGitIgnore($base)
+    public function readGitIgnore()
     {
-        if (! file_exists($base . '.gitignore')) {
+        if (! file_exists($this->base . '.gitignore')) {
             return [];
         }
 
-        $content = file_get_contents($base . '.gitignore');
+        $content = file_get_contents($this->base . '.gitignore');
 
         $content = preg_replace('/#.*$/m', '', $content);
         $content = preg_replace('/^(.*?)\.(.*?)$/m', '', $content);
@@ -86,12 +96,12 @@ class FixMovedClasses
         return preg_split('/\n/', $content);
     }
 
-    public function fixClassesNames(CallbackFilterIterator $phpFiles, $ignore)
+    public function fixClassesNames(CallbackFilterIterator $phpFiles)
     {
         $renames = new Set();
 
         foreach ($phpFiles as $phpFile) {
-            if (Helpers::pathInList($phpFile->getRelativePath(), $ignore)) {
+            if (Helpers::pathInList($phpFile->getRelativePath(), $this->ignore)) {
                 continue;
             }
 
@@ -129,7 +139,7 @@ class FixMovedClasses
         return $renames;
     }
 
-    public function updateClassNames(File $phpFile, Set $renames, $ignore)
+    public function updateClassNames(File $phpFile, Set $renames)
     {
         $occurances = $this->nameScanner->findNames($phpFile);
         $buffer = $this->editor->openBuffer($phpFile);
@@ -138,7 +148,7 @@ class FixMovedClasses
         $class = array_shift($classes);
 
         // Find namespace from file path, as we fixed invalid namespaces already.
-        if (! Helpers::pathInList($phpFile->getRelativePath(), $ignore)) {
+        if (! Helpers::pathInList($phpFile->getRelativePath(), $this->ignore)) {
             $namespace = $phpFile->extractPsr0ClassName()->fullyQualifiedNamespace();
         }
         // If file was skipped from fixing namespaces we will revert to defined one.
