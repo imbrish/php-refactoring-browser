@@ -33,7 +33,7 @@ class FixClassNames
         $this->nameScanner = $nameScanner;
     }
 
-    public function refactor(Directory $directory, $base)
+    public function refactor(Directory $directory)
     {
         $phpFiles = $directory->findAllPhpFilesRecursivly();
 

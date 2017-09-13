@@ -72,7 +72,7 @@ HELP
         $editor = new PatchEditor(new OutputPatchCommand($output));
 
         $fixClassNames = new FixClassNames($codeAnalysis, $editor, $phpNameScanner);
-        $fixClassNames->refactor($directory, $base);
+        $fixClassNames->refactor($directory);
     }
 }
 
