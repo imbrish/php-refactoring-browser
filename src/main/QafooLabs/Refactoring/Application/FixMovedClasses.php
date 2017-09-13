@@ -36,7 +36,7 @@ class FixMovedClasses
         $phpFiles = $directory->findAllPhpFilesRecursivly();
 
         // Fix namespaces of all moved classes and get list of changes.
-        $renames = $this->fixClassesNames($phpFiles);
+        $renames = $this->fixNamespaces($phpFiles);
 
         // Update old use statements in other files.
         // Remove unnecessary use statements in files that are now at the same path.
@@ -50,7 +50,7 @@ class FixMovedClasses
         $this->editor->save();
     }
 
-    public function fixClassesNames(array $phpFiles)
+    public function fixNamespaces(array $phpFiles)
     {
         $renames = new Set();
 
@@ -179,6 +179,16 @@ class FixMovedClasses
 
                     continue 2;
                 }
+            }
+
+            // Add missing use statement for class that have not been changed.
+            // This can happen, because we moved class defined in file away from its old peer classes.
+            if (! in_array($name->fullyQualifiedName(), $uses) && $name->isShort() && $namespace !== $name->fullyQualifiedNamespace()) {
+                $buffer->append($lastUseStatementLine, [sprintf('use %s;', $name->fullyQualifiedName())]);
+
+                $uses[] = $name->fullyQualifiedName();
+
+                $hasUses = true;
             }
         }
 

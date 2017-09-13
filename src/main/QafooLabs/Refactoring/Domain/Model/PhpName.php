@@ -226,6 +226,11 @@ class PhpName implements Hashable
         return $this->fullyQualifiedName === $this->relativeName;
     }
 
+    public function isShort()
+    {
+        return 1 === count(self::stringToParts($this->relativeName)) && ! $this->isFullyQualified();
+    }
+
     /**
      * Is the php name found in a use statement?
      *
