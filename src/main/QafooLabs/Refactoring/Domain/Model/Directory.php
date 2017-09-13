@@ -63,7 +63,7 @@ class Directory
                         new RecursiveIteratorIterator(
                             new DirectoryFilterIterator(
                                 new RecursiveDirectoryIterator(
-                                    $path,
+                                    realpath($path),
                                     FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS
                                 ),
                                 $this->exclude

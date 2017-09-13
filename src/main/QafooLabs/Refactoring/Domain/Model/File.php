@@ -35,7 +35,7 @@ class File
         static::$codeAnalysis = $codeAnalysis;
     }
 
-    private $relativePath;
+    private $realPath;
     private $code;
     private $classes;
     private $class;
@@ -53,12 +53,12 @@ class File
 
         $code = file_get_contents($path);
 
-        return new self(ltrim($path, '/'), $code);
+        return new self($path, $code);
     }
 
-    public function __construct($relativePath, $code)
+    public function __construct($realPath, $code)
     {
-        $this->relativePath = $relativePath;
+        $this->realPath = $realPath;
         $this->code = $code;
 
         $this->findClass();
@@ -77,7 +77,7 @@ class File
 
     public function shouldFixNamespace()
     {
-        if (Helpers::pathInList($this->relativePath, static::$ignore)) {
+        if (Helpers::pathInList($this->realPath, static::$ignore)) {
             return false;
         }
 
@@ -116,7 +116,7 @@ class File
      */
     public function getRelativePath()
     {
-        return $this->relativePath;
+        return Helpers::removeCwd($this->realPath);
     }
 
     /**
@@ -132,7 +132,7 @@ class File
      */
     public function getBaseName()
     {
-        return basename($this->relativePath);
+        return basename($this->realPath);
     }
 
     /**
@@ -157,7 +157,7 @@ class File
 
     private function parseFileForPsr0NamespaceName()
     {
-        $file = Helpers::removeBasePath($this->getRelativePath());
+        $file = Helpers::removeBasePath($this->realPath);
 
         $namespace = explode('/', $file);
 

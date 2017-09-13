@@ -16,11 +16,13 @@ namespace QafooLabs\Refactoring\Utils;
 
 class Helpers
 {
+    protected static $cwd;
     protected static $base;
 
     public static function setBasePath($base)
     {
-        static::$base = static::folderPath($base);
+        static::$cwd = static::folderPath(getcwd());
+        static::$base = static::folderPath(static::$cwd . $base);
     }
 
     public static function folderPath($path)
@@ -32,6 +34,13 @@ class Helpers
     public static function removeBasePath($path)
     {
         $pattern = '/^' . preg_quote(static::$base, '/') . '/';
+
+        return preg_replace($pattern, '', str_replace('\\', '/', $path));
+    }
+
+    public static function removeCwd($path)
+    {
+        $pattern = '/^' . preg_quote(static::$cwd, '/') . '/';
 
         return preg_replace($pattern, '', str_replace('\\', '/', $path));
     }

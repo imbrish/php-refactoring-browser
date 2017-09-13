@@ -36,7 +36,7 @@ class FixMovedClassesCommand extends Command
         $this
             ->setName('fix-moved-classes')
             ->setDescription('Update codebase after changing project structure.')
-            ->addArgument('dir', InputArgument::IS_ARRAY | InputArgument::REQUIRED, 'Directory that contains the source code to refactor')
+            ->addArgument('dir', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'Directory that contains the source code to refactor', [''])
             ->addOption('base', 'b', InputOption::VALUE_OPTIONAL, 'Project base directory', '')
             ->addOption('skip', 's', InputOption::VALUE_OPTIONAL, 'Directories relative to base directory that should be skipped', '')
             ->addOption('ignore', 'i', InputOption::VALUE_OPTIONAL, 'Directories in which invalid namespace should be ignored', '')
