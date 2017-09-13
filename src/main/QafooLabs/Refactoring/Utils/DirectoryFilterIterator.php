@@ -23,17 +23,29 @@ class DirectoryFilterIterator extends RecursiveFilterIterator
     public function __construct($iterator, array $exclude)
     {
         parent::__construct($iterator);
-        $this->exclude = $exclude;
+        $this->exclude = $this->joinGitIgnore($exclude, $this->getPath());
+    }
+
+    protected function joinGitIgnore($exclude, $path)
+    {
+        return array_merge($exclude, Helpers::readGitIgnore($path));
     }
 
     public function accept()
     {
-        return ! Helpers::pathInList($this->getPathname(), $this->exclude);
+        if (! $this->isDir()) {
+            return true;
+        }
+
+        $path = $this->getPathname();
+        $exclude = $this->joinGitIgnore($this->exclude, $path);
+
+        return ! Helpers::pathInList($path, $exclude);
     }
 
     public function getChildren()
     {
-        return new DirectoryFilterIterator($this->getInnerIterator()->getChildren(), $this->exclude);
+        return new static($this->getInnerIterator()->getChildren(), $this->exclude);
     }
 }
 

@@ -20,24 +20,19 @@ use QafooLabs\Refactoring\Utils\Helpers;
  */
 class File
 {
-    protected static $base;
-
     private $relativePath;
     private $code;
 
     /**
      * @param string $path
-     * @param string $workingDirectory
      *
      * @return File
      */
-    public static function createFromPath($path, $workingDirectory)
+    public static function createFromPath($path)
     {
         if ( ! file_exists($path) || ! is_file($path)) {
             throw new \InvalidArgumentException("Not a valid file: " . $path);
         }
-
-        static::$base = $workingDirectory;
 
         $code = file_get_contents($path);
 
@@ -96,7 +91,7 @@ class File
 
     private function parseFileForPsr0NamespaceName()
     {
-        $file = Helpers::removeBasePath($this->getRelativePath(), static::$base);
+        $file = Helpers::removeBasePath($this->getRelativePath());
 
         $namespace = explode('/', $file);
 

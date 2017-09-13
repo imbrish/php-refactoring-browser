@@ -22,6 +22,7 @@ use AppendIterator;
 use CallbackFilterIterator as StandardCallbackFilterIterator;
 use FilesystemIterator;
 
+use QafooLabs\Refactoring\Utils\Helpers;
 use QafooLabs\Refactoring\Utils\DirectoryFilterIterator;
 
 /**
@@ -29,34 +30,31 @@ use QafooLabs\Refactoring\Utils\DirectoryFilterIterator;
  */
 class Directory
 {
-    /**
-     * @var array
-     */
     private $paths;
+    private $exclude;
 
-    /**
-     * @var string
-     */
-    private $workingDirectory;
-
-    public function __construct($paths, $workingDirectory)
+    public function __construct($paths)
     {
         if (is_string($paths)) {
             $paths = array($paths);
         }
 
         $this->paths = $paths;
-        $this->workingDirectory = $workingDirectory;
+    }
+
+    public function setExcludedDirs($exclude)
+    {
+        $this->exclude = Helpers::relativePathsList(array_merge(['.git'], $exclude));
     }
 
     /**
      * @return File[]
      */
-    public function findAllPhpFilesRecursivly($exclude = [])
+    public function findAllPhpFilesRecursivly()
     {
-        $workingDirectory = $this->workingDirectory;
-
         $iterator = new AppendIterator;
+
+        $known = [];
 
         foreach ($this->paths as $path) {
             $iterator->append(
@@ -64,27 +62,29 @@ class Directory
                     new CallbackFilterIterator(
                         new RecursiveIteratorIterator(
                             new DirectoryFilterIterator(
-                                new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
-                                $exclude
+                                new RecursiveDirectoryIterator(
+                                    $path,
+                                    FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS
+                                ),
+                                $this->exclude
                             ),
                             RecursiveIteratorIterator::LEAVES_ONLY
                         ),
-                        function (SplFileInfo $file) {
-                            return substr($file->getFilename(), -4) === ".php";
+                        function (SplFileInfo $file) use (&$known) {
+                            if (substr($name = $file->getPathname(), -4) !== '.php' || isset($known[$name])) {
+                                return false;
+                            }
+
+                            return $known[$name] = true;
                         }
                     ),
-                    function ($file) use ($workingDirectory) {
-                        return File::createFromPath($file->getPathname(), $workingDirectory);
+                    function ($file) {
+                        return File::createFromPath($file->getPathname());
                     }
                 )
             );
         }
 
-        $files = iterator_to_array($iterator);
-
-        return new StandardCallbackFilterIterator($iterator, function($file, $filename) use ($files) {
-            return !in_array($filename, $files);
-        });
+        return iterator_to_array($iterator);
     }
 }
-

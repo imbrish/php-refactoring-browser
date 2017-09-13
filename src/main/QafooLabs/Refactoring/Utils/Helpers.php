@@ -16,25 +16,43 @@ namespace QafooLabs\Refactoring\Utils;
 
 class Helpers
 {
+    protected static $base;
+
+    public static function setBasePath($base)
+    {
+        static::$base = static::folderPath($base);
+    }
+
     public static function folderPath($path)
     {
         // Convert slashes and add trailing slash.
-        return rtrim(str_replace('\\', '/', $path), '/') . '/';
+        return trim(str_replace('\\', '/', trim($path)), '/') . '/';
     }
 
-    public static function removeBasePath($path, $base)
+    public static function removeBasePath($path)
     {
-        $pattern = '/^' . preg_quote(str_replace('\\', '/', $base), '/') . '/';
+        $pattern = '/^' . preg_quote(static::$base, '/') . '/';
 
         return preg_replace($pattern, '', str_replace('\\', '/', $path));
     }
 
+    public static function relativePathsList($paths, $base = null)
+    {
+        $base = is_null($base) ? static::$base : static::folderPath($base);
+
+        return array_unique(array_map(function ($path) use ($base) {
+            return static::folderPath($base . ltrim(trim($path), '/'));
+        }, $paths));
+    }
+
     public static function pathInList($path, $list)
     {
-        $path = str_replace('\\', '/', $path) . '/';
+        $path = static::folderPath($path);
 
         foreach ($list as $item) {
-            $pattern = '/^' . preg_quote($item, '/') . '/';
+            $item = preg_replace('#/\*/.*#', '/', $item); // remove everything after "/*/"
+            $pattern = str_replace('\*', '[^/]*', preg_quote($item)); // convert to pattern and add wildcards
+            $pattern = sprintf('#^%s#', $pattern);
 
             if (preg_match($pattern, $path)) {
                 return true;
@@ -47,5 +65,24 @@ class Helpers
     public static function splitOption($option)
     {
         return array_filter(explode(',', $option));
+    }
+
+    public static function readGitIgnore($dir)
+    {
+        $path = rtrim($dir, '/') . '/.gitignore';
+
+        if (! file_exists($path)) {
+            return [];
+        }
+
+        $content = file_get_contents($path);
+
+        $content = preg_replace('/#.*$/m', '', $content); // remove comments
+        $content = preg_replace('/^(.*?)\.(.*?)$/m', '', $content); // remove files
+        $content = preg_replace('/^\s+$/m', '', $content); // trim lines
+
+        $content = array_filter(preg_split('/\r\n?|\n/', $content));
+
+        return static::relativePathsList($content, $dir);
     }
 }

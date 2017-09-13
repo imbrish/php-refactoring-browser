@@ -14,21 +14,17 @@
 namespace QafooLabs\Refactoring\Application;
 
 use QafooLabs\Collections\Set;
+use QafooLabs\Refactoring\Utils\Helpers;
 use QafooLabs\Refactoring\Domain\Model\Directory;
 use QafooLabs\Refactoring\Domain\Model\File;
 use QafooLabs\Refactoring\Domain\Model\PhpName;
 use QafooLabs\Refactoring\Domain\Model\PhpNameChange;
-
-use CallbackFilterIterator;
-use QafooLabs\Refactoring\Utils\Helpers;
 
 class FixMovedClasses
 {
     private $codeAnalysis;
     private $editor;
     private $nameScanner;
-    private $base;
-    private $skip;
     private $ignore;
 
     public function __construct($codeAnalysis, $editor, $nameScanner)
@@ -38,20 +34,15 @@ class FixMovedClasses
         $this->nameScanner = $nameScanner;
     }
 
-    public function setParameters($base, $skip, $ignore)
+    public function setIgnoredDirs($ignore)
     {
-        $this->base = $base;
-        $this->skip = $skip;
-        $this->ignore = $ignore;
+        $this->ignore = Helpers::relativePathsList($ignore);
     }
 
     public function refactor(Directory $directory)
     {
-        // Get paths to ignore from .gitignore file.
-        $exclude = $this->pathsToExclude();
-
         // Find all files.
-        $phpFiles = $directory->findAllPhpFilesRecursivly($exclude);
+        $phpFiles = $directory->findAllPhpFilesRecursivly();
 
         // Fix namespaces of all moved classes and get list of changes.
         $renames = $this->fixClassesNames($phpFiles);
@@ -68,35 +59,7 @@ class FixMovedClasses
         $this->editor->save();
     }
 
-    public function pathsToExclude()
-    {
-        $exclude = array_merge(
-            ['.git'],
-            $this->readGitIgnore(),
-            $this->skip
-        );
-
-        return array_unique(array_map(function ($path) {
-            return $this->base . Helpers::folderPath(ltrim(trim($path), '/'));
-        }, $exclude));
-    }
-
-    public function readGitIgnore()
-    {
-        if (! file_exists($this->base . '.gitignore')) {
-            return [];
-        }
-
-        $content = file_get_contents($this->base . '.gitignore');
-
-        $content = preg_replace('/#.*$/m', '', $content);
-        $content = preg_replace('/^(.*?)\.(.*?)$/m', '', $content);
-        $content = trim(preg_replace('/\n{2,}/', '', $content));
-
-        return preg_split('/\n/', $content);
-    }
-
-    public function fixClassesNames(CallbackFilterIterator $phpFiles)
+    public function fixClassesNames(array $phpFiles)
     {
         $renames = new Set();
 

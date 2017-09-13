@@ -44,18 +44,17 @@ class FixMovedClassesCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $base = Helpers::folderPath($input->getOption('base') ?: getcwd());
-        $skip = Helpers::splitOption($input->getOption('skip'));
-        $ignore = Helpers::splitOption($input->getOption('ignore'));
+        Helpers::setBasePath($input->getOption('base'));
 
-        $directory = new Directory($input->getArgument('dir'), $base);
+        $directory = new Directory($input->getArgument('dir'));
+        $directory->setExcludedDirs(Helpers::splitOption($input->getOption('skip')));
 
         $codeAnalysis = new StaticCodeAnalysis();
         $phpNameScanner = new ParserPhpNameScanner();
         $editor = new PatchEditor(new OutputPatchCommand($output));
 
         $fixMovedClasses = new FixMovedClasses($codeAnalysis, $editor, $phpNameScanner);
-        $fixMovedClasses->setParameters($base, $skip, $ignore);
+        $fixMovedClasses->setIgnoredDirs(Helpers::splitOption($input->getOption('ignore')));
         $fixMovedClasses->refactor($directory);
     }
 }
