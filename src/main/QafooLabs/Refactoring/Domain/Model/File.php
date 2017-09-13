@@ -85,7 +85,7 @@ class File
             return true;
         }
 
-        return ! static::$loose;
+        return $this->class && ! static::$loose;
     }
 
     public function namespaceDeclarationLine()
