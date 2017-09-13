@@ -51,7 +51,7 @@ class FixMovedClasses
         // Add missing use statements for files that used to be at the same path.
         // Update usage of fully qualified class names.
         foreach ($phpFiles as $phpFile) {
-            $this->updateClassNames($phpFile, $renames);
+            $this->updateClassNames($phpFile, $renames, $ignore);
         }
 
         // Generate diff.
@@ -129,7 +129,7 @@ class FixMovedClasses
         return $renames;
     }
 
-    public function updateClassNames(File $phpFile, Set $renames)
+    public function updateClassNames(File $phpFile, Set $renames, $ignore)
     {
         $occurances = $this->nameScanner->findNames($phpFile);
         $buffer = $this->editor->openBuffer($phpFile);
@@ -137,9 +137,18 @@ class FixMovedClasses
         $classes = $this->codeAnalysis->findClasses($phpFile);
         $class = array_shift($classes);
 
-        // Find file namespace basing on file structure.
-        // It's safe to do, as we fixed invalid defined namespaces already.
-        $namespace = $phpFile->extractPsr0ClassName()->fullyQualifiedNamespace();
+        // Find namespace from file path, as we fixed invalid namespaces already.
+        if (! Helpers::pathInList($phpFile->getRelativePath(), $ignore)) {
+            $namespace = $phpFile->extractPsr0ClassName()->fullyQualifiedNamespace();
+        }
+        // If file was skipped from fixing namespaces we will revert to defined one.
+        else {
+            $namespace = array_filter($occurances, function ($occurance) {
+                return $occurance->name()->type() === PhpName::TYPE_NAMESPACE;
+            });
+
+            $namespace = $namespace ? reset($namespace)->name()->fullyQualifiedName() : null;
+        }
 
         // This variables are used purely for formating of use statements.
         $hadUses = false;
