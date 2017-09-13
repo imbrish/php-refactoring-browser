@@ -20,6 +20,8 @@ use QafooLabs\Refactoring\Utils\Helpers;
  */
 class File
 {
+    protected static $base;
+
     private $relativePath;
     private $code;
 
@@ -35,11 +37,11 @@ class File
             throw new \InvalidArgumentException("Not a valid file: " . $path);
         }
 
+        static::$base = $workingDirectory;
+
         $code = file_get_contents($path);
 
-        $relativePath = Helpers::removeBasePath($path, $workingDirectory);
-
-        return new self(ltrim($relativePath, '/'), $code);
+        return new self(ltrim($path, '/'), $code);
     }
 
     public function __construct($relativePath, $code)
@@ -94,7 +96,7 @@ class File
 
     private function parseFileForPsr0NamespaceName()
     {
-        $file = ltrim($this->getRelativePath(), DIRECTORY_SEPARATOR);
+        $file = Helpers::removeBasePath($this->getRelativePath(), static::$base);
 
         $namespace = explode('/', $file);
 
