@@ -30,6 +30,7 @@ use QafooLabs\Refactoring\Domain\Model\File;
 use QafooLabs\Refactoring\Utils\Helpers;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Process\Process;
+use QafooLabs\Refactoring\Utils\PrettyDiff;
 
 class FixMovedClassesCommand extends Command
 {
@@ -44,6 +45,7 @@ class FixMovedClassesCommand extends Command
             ->addOption('ignore', 'i', InputOption::VALUE_OPTIONAL, 'Directories in which invalid namespace should be ignored', '')
             ->addOption('loose', 'l', InputOption::VALUE_NONE, 'Automatically ignore files without namespace')
             ->addOption('patch', null, InputOption::VALUE_NONE, 'Apply generated diff')
+            ->addOption('pretty', 'p', InputOption::VALUE_NONE, 'Print pretty diff')
         ;
     }
 
@@ -69,7 +71,13 @@ class FixMovedClassesCommand extends Command
         $fixMovedClasses->refactor($directory);
 
         if (! $input->getOption('patch')) {
-            $output->write($diffOutput->fetch());
+            if ($input->getOption('pretty')) {
+                $pretty = new PrettyDiff($diffOutput->fetch());
+                $pretty->out($output);
+            }
+            else {
+                $output->write($diffOutput->fetch());
+            }
         }
         else {
             $process = new Process('patch -p1 --binary');
